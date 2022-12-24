@@ -141,4 +141,6 @@ app.put("/reset-password/:id/:token", async (req, res) => {
 });
 
 
-app.listen(3000);
+app.listen(process.env.PORT || 3003, function () {
+  console.log("Server Listening!");
+});
