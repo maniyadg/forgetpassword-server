@@ -6,8 +6,8 @@ const { MongoClient } = require("mongodb");
 const app = express();
 const dotenv = require("dotenv").config();
 const bcrypt = require("bcryptjs");
-// const jwt = require("jsonwebtoken");
-// const JWT_SECRET = process.env.JWT_SECRET;
+const jwt = require("jsonwebtoken");
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const url = process.env.DB;
 const client = new MongoClient(url);
@@ -24,12 +24,12 @@ app.post("/user/register", async (req, res) => {
   // db connection
   try {
     const connection = await client.connect();
-    const db = connection.db("urlShortner");
+    const db = connection.db("mongodb_sample_project");
     // hasing - password secure
     var salt = await bcrypt.genSalt(10);
     var hash = await bcrypt.hash(req.body.password, salt);
     req.body.password = hash;
-    const product = await db.collection("urls").insertOne(req.body);
+    const product = await db.collection("users").insertOne(req.body);
     await connection.close();
     res.json({ message: "user created", id: product.insertedId });
   } catch (error) {
@@ -43,8 +43,8 @@ app.post("/user/login", async (req, res) => {
   // db connection
   try {
     const connection = await client.connect();
-    const db = connection.db("urlShortner");
-    const user = await db.collection("urls").findOne({ email: req.body.email });
+    const db = connection.db("mongodb_sample_project");
+    const user = await db.collection("users").findOne({ email: req.body.email });
     if (user) {
       const compare = await bcrypt.compare(req.body.password, user.password);
       if (compare) {
@@ -140,62 +140,5 @@ app.put("/reset-password/:id/:token", async (req, res) => {
   }
 });
 
-app.post("/urlshortner", async (req, res) => {
-  // db connection
-  try {
-    const connection = await client.connect();
-    const db = connection.db("urlShortner");
-    const urlshort = {
-      fullurl: req.body,
-      shorturl: generateUrl(),
-    };
-    const longurl = await db.collection("urls").insertOne(urlshort);
-    await connection.close();
-    res.json({ message: "product created", id: longurl.insertedId, shorturl });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "something went wrong" });
-  }
-});
-
-app.get("/:urlid", async (req, res) => {
-  try {
-    const connection = await client.connect();
-    const db = connection.db("urlShortner");
-    const shorturl = req.params.urlid;
-    const fulldata = await db.collection("urls").findOne({ shorturl });
-    if (fulldata) {
-      let longurl = fulldata.fullurl.longurl;
-      console.log(fulldata);
-      console.log(longurl);
-      await db
-      .collection("urls")
-      .findOneAndUpdate({ shorturl }, { $inc: { count: 1 } });
-    res.redirect(longurl);
-    }
-
-
-    await connection.close();
-    res.json(shorturl);
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "something went wrong" });
-  }
-});
-
-function generateUrl() {
-  var rndResult = "";
-  var characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  var charactersLength = characters.length;
-
-  for (var i = 0; i < 5; i++) {
-    rndResult += characters.charAt(
-      Math.floor(Math.random() * charactersLength)
-    );
-  }
-  console.log(rndResult);
-  return rndResult;
-}
 
 app.listen(3000);
